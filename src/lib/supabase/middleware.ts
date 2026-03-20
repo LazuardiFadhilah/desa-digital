@@ -52,16 +52,20 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Redirect ke /login jika user belum login dan mencoba akses halaman protected
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    request.nextUrl.pathname !== '/'
-  ) {
+  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/unauthorized')
+
+  // 1. Jika belum login dan coba akses halaman selain auth -> lempar ke login
+  if (!user && !isAuthRoute) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
     return NextResponse.redirect(loginUrl)
+  }
+
+  // 2. Jika sudah login dan coba akses /login -> otomatis lempar ke dashboard (root)
+  if (user && request.nextUrl.pathname.startsWith('/login')) {
+    const dashboardUrl = request.nextUrl.clone()
+    dashboardUrl.pathname = '/'
+    return NextResponse.redirect(dashboardUrl)
   }
 
   return supabaseResponse
